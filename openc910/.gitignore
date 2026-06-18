@@ -1,0 +1,19 @@
+# Local tool downloads and installs.
+/tools/build/
+/tools/src/
+
+# smart_run generated simulation/build output.
+/smart_run/work/
+/smart_run/tests/regress/
+
+# Common waveform and simulation logs.
+*.vcd
+*.fst
+*.fsdb
+*.vpd
+*.log
+
+# Editor scratch files.
+*.swp
+*.swo
+*~
