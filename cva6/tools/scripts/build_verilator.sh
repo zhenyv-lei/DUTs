@@ -7,7 +7,7 @@ need_cmd git tar autoconf make patch
 
 SRC_DIR="$TOOLS_SRC_DIR/verilator"
 BUILD_DIR="$TOOLS_BUILD_DIR/verilator-${VERILATOR_VERSION}"
-INSTALL_DIR="$TOOLS_INSTALL_DIR/verilator"
+INSTALL_DIR="$TOOLS_BUILD_DIR/verilator"
 PATCH_FILE="$CVA6_ROOT/verif/regress/verilator-v5.patch"
 
 if [[ -x "$INSTALL_DIR/bin/verilator" && "${FORCE_REBUILD:-0}" != "1" ]]; then
@@ -17,8 +17,8 @@ if [[ -x "$INSTALL_DIR/bin/verilator" && "${FORCE_REBUILD:-0}" != "1" ]]; then
 fi
 
 clone_or_fetch "$VERILATOR_REPO" "$SRC_DIR"
-run_net git -C "$SRC_DIR" fetch --tags origin
-run_net git -C "$SRC_DIR" checkout "$VERILATOR_VERSION"
+git -C "$SRC_DIR" fetch --tags origin
+git -C "$SRC_DIR" checkout "$VERILATOR_VERSION"
 
 rm -rf "$BUILD_DIR" "$INSTALL_DIR"
 mkdir -p "$BUILD_DIR" "$INSTALL_DIR"

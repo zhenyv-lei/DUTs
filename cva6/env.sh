@@ -5,21 +5,20 @@ export CVA6_ROOT="$(cd "$(dirname "$_CVA6_ENV_SCRIPT")" && pwd -P)"
 unset _CVA6_ENV_SCRIPT
 
 export CVA6_TOOLS_BUILD="${CVA6_TOOLS_BUILD:-$CVA6_ROOT/tools/build}"
-export CVA6_TOOLS_INSTALL="${CVA6_TOOLS_INSTALL:-$CVA6_TOOLS_BUILD/install}"
 
-export RISCV="$CVA6_TOOLS_INSTALL/riscv"
+export RISCV="$CVA6_TOOLS_BUILD/riscv"
 export RISCV_CC="$RISCV/bin/riscv-none-elf-gcc"
 export RISCV_OBJCOPY="$RISCV/bin/riscv-none-elf-objcopy"
 export CV_SW_PREFIX="riscv-none-elf-"
 
 export SPIKE_SRC_DIR="$CVA6_ROOT/verif/core-v-verif/vendor/riscv/riscv-isa-sim"
-export SPIKE_INSTALL_DIR="$CVA6_TOOLS_INSTALL/spike"
+export SPIKE_INSTALL_DIR="$CVA6_TOOLS_BUILD/spike"
 export SPIKE_PATH="$SPIKE_INSTALL_DIR/bin"
 
-export VERILATOR_INSTALL_DIR="$CVA6_TOOLS_INSTALL/verilator"
+export VERILATOR_INSTALL_DIR="$CVA6_TOOLS_BUILD/verilator"
 export VERILATOR_ROOT="$VERILATOR_INSTALL_DIR/share/verilator"
 
-export PK_INSTALL_DIR="$CVA6_TOOLS_INSTALL/riscv-pk-rv32"
+export PK_INSTALL_DIR="$CVA6_TOOLS_BUILD/riscv-pk-rv32"
 export PK_BIN="$PK_INSTALL_DIR/riscv32-unknown-elf/bin/pk"
 export RISCV_PK_RV32="$PK_BIN"
 

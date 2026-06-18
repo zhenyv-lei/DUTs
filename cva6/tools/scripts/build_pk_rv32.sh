@@ -4,9 +4,9 @@ source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 source "$SCRIPT_DIR/versions.sh"
 
 SRC_DIR="$TOOLS_SRC_DIR/riscv-pk"
-BUILD_DIR="$TOOLS_BUILD_DIR/riscv-pk-rv32"
-INSTALL_DIR="$TOOLS_INSTALL_DIR/riscv-pk-rv32"
-RISCV_INSTALL="$TOOLS_INSTALL_DIR/riscv"
+BUILD_DIR="$TOOLS_BUILD_DIR/riscv-pk-rv32-build"
+INSTALL_DIR="$TOOLS_BUILD_DIR/riscv-pk-rv32"
+RISCV_INSTALL="$TOOLS_BUILD_DIR/riscv"
 
 if [[ ! -x "$RISCV_INSTALL/bin/riscv-none-elf-gcc" ]]; then
   echo "Missing RISC-V toolchain. Run tools/scripts/build_riscv_toolchain.sh first." >&2
@@ -19,14 +19,14 @@ if [[ -x "$INSTALL_DIR/riscv32-unknown-elf/bin/pk" && "${FORCE_REBUILD:-0}" != "
 fi
 
 clone_or_fetch "$RISCV_PK_REPO" "$SRC_DIR"
-run_net git -C "$SRC_DIR" fetch origin
+git -C "$SRC_DIR" fetch origin
 if [[ -n "$RISCV_PK_REF" ]]; then
-  run_net git -C "$SRC_DIR" checkout "$RISCV_PK_REF"
+  git -C "$SRC_DIR" checkout "$RISCV_PK_REF"
 else
   default_branch="$(git -C "$SRC_DIR" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##')"
   if [[ -n "$default_branch" ]]; then
-    run_net git -C "$SRC_DIR" checkout "$default_branch"
-    run_net git -C "$SRC_DIR" pull --ff-only origin "$default_branch"
+    git -C "$SRC_DIR" checkout "$default_branch"
+    git -C "$SRC_DIR" pull --ff-only origin "$default_branch"
   fi
 fi
 

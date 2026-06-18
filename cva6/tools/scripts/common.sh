@@ -6,7 +6,6 @@ export CVA6_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
 export TOOLS_ROOT="$CVA6_ROOT/tools"
 export TOOLS_SRC_DIR="${TOOLS_SRC_DIR:-$TOOLS_ROOT/src}"
 export TOOLS_BUILD_DIR="${TOOLS_BUILD_DIR:-$TOOLS_ROOT/build}"
-export TOOLS_INSTALL_DIR="${TOOLS_INSTALL_DIR:-$TOOLS_BUILD_DIR/install}"
 
 if [[ -z "${NUM_JOBS:-}" ]]; then
   if command -v nproc >/dev/null 2>&1; then
@@ -15,15 +14,6 @@ if [[ -z "${NUM_JOBS:-}" ]]; then
     export NUM_JOBS="$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)"
   fi
 fi
-
-run_net() {
-  if [[ -n "${NET_PREFIX:-}" ]]; then
-    read -r -a _net_prefix <<< "$NET_PREFIX"
-    "${_net_prefix[@]}" "$@"
-  else
-    "$@"
-  fi
-}
 
 need_cmd() {
   local cmd
@@ -40,10 +30,10 @@ clone_or_fetch() {
   local dir="$2"
   mkdir -p "$(dirname "$dir")"
   if [[ ! -d "$dir/.git" ]]; then
-    run_net git clone "$repo" "$dir"
+    git clone "$repo" "$dir"
   else
-    run_net git -C "$dir" fetch --tags origin
+    git -C "$dir" fetch --tags origin
   fi
 }
 
-mkdir -p "$TOOLS_SRC_DIR" "$TOOLS_BUILD_DIR" "$TOOLS_INSTALL_DIR"
+mkdir -p "$TOOLS_SRC_DIR" "$TOOLS_BUILD_DIR"

@@ -8,7 +8,7 @@ if ! command -v uv >/dev/null 2>&1; then
   if [[ -x "$UV_BIN" ]]; then
     export PATH="$HOME/.local/bin:$PATH"
   else
-    run_net curl -LsSf https://astral.sh/uv/install.sh | sh
+    curl -LsSf https://astral.sh/uv/install.sh | sh
     export PATH="$HOME/.local/bin:$PATH"
   fi
 fi

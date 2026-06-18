@@ -15,18 +15,9 @@ LINK="$BUILD_DIR/xuantie-gcc"
 
 mkdir -p "$SRC_DIR" "$BUILD_DIR"
 
-download() {
-  if [ -n "${DOWNLOAD_PROXY_CMD:-}" ]; then
-    read -r -a proxy_cmd <<< "$DOWNLOAD_PROXY_CMD"
-    "${proxy_cmd[@]}" wget -c -O "$ARCHIVE" "$URL"
-  else
-    wget -c -O "$ARCHIVE" "$URL"
-  fi
-}
-
 if [ ! -f "$ARCHIVE" ]; then
   echo "[xuantie] downloading $URL"
-  download
+  wget -c -O "$ARCHIVE" "$URL"
 else
   echo "[xuantie] using existing archive: $ARCHIVE"
 fi

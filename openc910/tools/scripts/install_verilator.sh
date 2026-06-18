@@ -27,21 +27,15 @@ need_cmd autoconf
 need_cmd make
 need_cmd perl
 
-GIT_CMD=(git)
-if [ -n "${GIT_PROXY_CMD:-}" ]; then
-  read -r -a proxy_cmd <<< "$GIT_PROXY_CMD"
-  GIT_CMD=("${proxy_cmd[@]}" git)
-fi
-
 if [ ! -d "$SRC_REPO/.git" ]; then
   echo "[verilator] cloning $REPO_URL into $SRC_REPO"
-  "${GIT_CMD[@]}" clone "$REPO_URL" "$SRC_REPO"
+  git clone "$REPO_URL" "$SRC_REPO"
 else
   echo "[verilator] using existing source: $SRC_REPO"
 fi
 
 cd "$SRC_REPO"
-"${GIT_CMD[@]}" fetch --tags
+git fetch --tags
 git checkout "$VERILATOR_VERSION"
 
 if [ ! -x "$PREFIX/bin/verilator" ]; then
