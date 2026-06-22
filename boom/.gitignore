@@ -1,6 +1,7 @@
+chipyard
 chipyard/
-tools/conda/
-tools/downloads/
+tools
+tools/
 builds/*
 !builds/.gitkeep
 runs/*
