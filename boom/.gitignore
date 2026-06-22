@@ -1,0 +1,7 @@
+chipyard/
+tools/conda/
+tools/downloads/
+builds/*
+!builds/.gitkeep
+runs/*
+!runs/.gitkeep
