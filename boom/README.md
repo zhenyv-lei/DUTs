@@ -23,9 +23,10 @@ Start from a checked-out `DUTs` repository:
 cd ~/opt/DUTs/boom
 ```
 
-Build the BOOM cospike targets. `setup_target.sh` deploys the local conda,
-Chipyard checkout, Chipyard conda environment, and RISC-V tools before building
-the selected simulator:
+Build the BOOM cospike targets. On the first run, `setup_target.sh` deploys the
+local conda, Chipyard checkout, Chipyard conda environment, and RISC-V tools
+before building the selected simulator. Later target builds reuse
+`boom/tools/conda` and `boom/chipyard/.conda-env` when they are already present:
 
 ```bash
 JOBS=16 scripts/setup_target.sh boomv3-medium
@@ -80,8 +81,10 @@ Expected result for both targets:
 ```text
 Cosim: harts: 1
 Hello world from core 0, a sonicboom
-*** PASSED ***
+Verilog $finish
 ```
+
+The `run_helloworld.sh` command should exit with status 0.
 
 ## Configurations
 
@@ -114,9 +117,11 @@ is not the current acceptance path.
 ## Notes
 
 - `scripts/install_conda.sh` installs Miniforge into `boom/tools/conda/` if no
-  usable `conda` is already available.
+  local conda is already available there.
 - `scripts/install_chipyard.sh` checks out Chipyard at the pinned ref recorded
-  in the script and runs Chipyard's `build-setup.sh riscv-tools`.
+  in the script and runs Chipyard's `build-setup.sh riscv-tools` on first
+  deployment. If the pinned checkout and `.conda-env` already exist, it reuses
+  them and only refreshes the local overlays.
 - `scripts/apply_chipyard_overlays.sh` adds local dual-core debug configs and
   cospike compatibility fixes to the local Chipyard checkout.
 - `scripts/setup_target.sh` creates the target wrappers and builds the selected

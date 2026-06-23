@@ -8,11 +8,6 @@ DOWNLOAD_DIR="$BOOM_ROOT/tools/downloads"
 INSTALLER="$DOWNLOAD_DIR/Miniforge3-Linux-x86_64.sh"
 MINIFORGE_URL="${MINIFORGE_URL:-https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh}"
 
-if command -v conda >/dev/null 2>&1; then
-  echo "Using existing conda: $(command -v conda)"
-  exit 0
-fi
-
 if [ -x "$CONDA_PREFIX/bin/conda" ]; then
   echo "Using local conda: $CONDA_PREFIX/bin/conda"
   exit 0

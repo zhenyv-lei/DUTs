@@ -14,6 +14,7 @@ Targets:
 Environment:
   JOBS=48
   CHIPYARD_REF=<git-ref>
+  CHIPYARD_REPO=<url>
 EOF
 }
 

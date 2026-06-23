@@ -133,7 +133,9 @@ JOBS=16 scripts/setup_target.sh boomv4-medium-dual
 
 This stage first ensures the local environment is installed, then creates the
 target wrappers under `boom/targets/` and builds the corresponding Verilator
-cosim binaries:
+cosim binaries. The first target build installs `boom/tools/conda` and
+`boom/chipyard/.conda-env`; later target builds reuse those local resources and
+only refresh the Chipyard overlays before compiling the requested config:
 
 ```text
 boom/chipyard/sims/verilator/simulator-chipyard.harness-MediumBoomV3CosimConfig
