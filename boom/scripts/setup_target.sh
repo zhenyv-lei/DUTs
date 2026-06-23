@@ -3,7 +3,13 @@ set -euo pipefail
 
 usage() {
   cat >&2 <<'EOF'
-usage: setup_target.sh <boomv3-medium|boomv4-medium>
+usage: setup_target.sh <target>
+
+Targets:
+  boomv3-medium        Single-core BOOM v3 cospike target.
+  boomv4-medium        Single-core BOOM v4 cospike target.
+  boomv3-medium-dual   Dual-core BOOM v3 cospike debug target.
+  boomv4-medium-dual   Dual-core BOOM v4 cospike debug target.
 
 Environment:
   JOBS=48
@@ -25,11 +31,23 @@ JOBS="${JOBS:-48}"
 case "$TARGET" in
   boomv3-medium)
     CONFIG="MediumBoomV3CosimConfig"
-    DUAL_CONFIG="DualMediumBoomV3CosimConfig"
+    CORES="1"
+    TARGET_KIND="single-core"
     ;;
   boomv4-medium)
     CONFIG="MediumBoomV4CosimConfig"
-    DUAL_CONFIG="DualMediumBoomV4CosimConfig"
+    CORES="1"
+    TARGET_KIND="single-core"
+    ;;
+  boomv3-medium-dual)
+    CONFIG="DualMediumBoomV3CosimConfig"
+    CORES="2"
+    TARGET_KIND="dual-core debug"
+    ;;
+  boomv4-medium-dual)
+    CONFIG="DualMediumBoomV4CosimConfig"
+    CORES="2"
+    TARGET_KIND="dual-core debug"
     ;;
   *)
     usage
@@ -75,7 +93,7 @@ set -u
 
 export BOOM_TARGET="$TARGET"
 export BOOM_CONFIG="$CONFIG"
-export BOOM_DUAL_CONFIG="$DUAL_CONFIG"
+export BOOM_CORES="$CORES"
 export BOOM_ROOT="\$DUT_DIR/../.."
 export CHIPYARD_ROOT="\$DUT_DIR/../../chipyard"
 EOF
@@ -116,51 +134,19 @@ fi
 exec "$SCRIPT_DIR/run_cosim.sh" "$HELLO_ELF"
 EOF
 
-cat > "$TARGET_DIR/run_dual_helloworld.sh" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-if [ -z "${BOOM_DUAL_CONFIG:-}" ] || [ -z "${CHIPYARD_ROOT:-}" ]; then
-  # shellcheck disable=SC1091
-  source "$SCRIPT_DIR/env.sh"
-fi
-
-HELLO_ELF="$CHIPYARD_ROOT/tests/build/hello.riscv"
-
-if [ ! -x "$HELLO_ELF" ]; then
-  (
-    cd "$CHIPYARD_ROOT"
-    cmake -S tests -B tests/build -D CMAKE_BUILD_TYPE=Release
-    cmake --build tests/build --target hello -j"${JOBS:-48}"
-  )
-fi
-
-exec "$SCRIPT_DIR/../../scripts/run_config.sh" "$BOOM_DUAL_CONFIG" "$HELLO_ELF"
-EOF
-
 cat > "$TARGET_DIR/README.md" <<EOF
 # $TARGET
 
-This DUT wrapper runs the single-core \`$CONFIG\` through the shared Chipyard
-checkout in \`../../chipyard\`. Run Chipyard's stock hello workload with:
+This DUT wrapper runs the $TARGET_KIND \`$CONFIG\` through the shared Chipyard
+checkout in \`../../chipyard\`. Run Chipyard's stock \`hello.riscv\` workload
+with:
 
 \`\`\`bash
 source ./env.sh
 ./run_helloworld.sh
 \`\`\`
 
-The default acceptance path is single-core cospike, and cospike should report
-\`harts: 1\`.
-
-For dual-core debugging, the wrapper also records \`$DUAL_CONFIG\` as
-\`BOOM_DUAL_CONFIG\`. This path is expected to expose the current strict-cospike
-secondary-hart load mismatch:
-
-\`\`\`bash
-source ./env.sh
-./run_dual_helloworld.sh
-\`\`\`
+Cospike should report \`harts: $CORES\`.
 
 Run a custom ELF with:
 
@@ -176,16 +162,9 @@ Logs are written to:
 ../../runs/$CONFIG/logs/run.log
 ../../chipyard/sims/verilator/output/chipyard.harness.TestHarness.$CONFIG/
 \`\`\`
-
-Dual-core debug logs use:
-
-\`\`\`text
-../../runs/$DUAL_CONFIG/logs/build.log
-../../runs/$DUAL_CONFIG/logs/run.log
-\`\`\`
 EOF
 
-chmod +x "$TARGET_DIR/run_cosim.sh" "$TARGET_DIR/run_helloworld.sh" "$TARGET_DIR/run_dual_helloworld.sh"
+chmod +x "$TARGET_DIR/run_cosim.sh" "$TARGET_DIR/run_helloworld.sh"
 
 "$BOOM_ROOT/scripts/run_config.sh" "$CONFIG"
 

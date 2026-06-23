@@ -14,6 +14,8 @@ The exposed DUT entries are:
 ```text
 targets/boomv3-medium -> MediumBoomV3CosimConfig
 targets/boomv4-medium -> MediumBoomV4CosimConfig
+targets/boomv3-medium-dual -> DualMediumBoomV3CosimConfig
+targets/boomv4-medium-dual -> DualMediumBoomV4CosimConfig
 ```
 
 Chipyard Scala configs are the source of truth for BOOM configuration. The

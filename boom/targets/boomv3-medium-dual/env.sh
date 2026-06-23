@@ -11,7 +11,7 @@ CHIPYARD_ENV="$DUT_DIR/../../chipyard/env.sh"
 
 if [ ! -f "$CHIPYARD_ENV" ]; then
   echo "Missing Chipyard environment: $CHIPYARD_ENV" >&2
-  echo "Run: ../../scripts/setup_target.sh boomv4-medium" >&2
+  echo "Run: ../../scripts/setup_target.sh boomv3-medium-dual" >&2
   return 1
 fi
 
@@ -25,8 +25,8 @@ set +u
 source "$CHIPYARD_ENV"
 set -u
 
-export BOOM_TARGET="boomv4-medium"
-export BOOM_CONFIG="MediumBoomV4CosimConfig"
-export BOOM_CORES="1"
+export BOOM_TARGET="boomv3-medium-dual"
+export BOOM_CONFIG="DualMediumBoomV3CosimConfig"
+export BOOM_CORES="2"
 export BOOM_ROOT="$DUT_DIR/../.."
 export CHIPYARD_ROOT="$DUT_DIR/../../chipyard"

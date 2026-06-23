@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-if [ -z "${BOOM_DUAL_CONFIG:-}" ] || [ -z "${CHIPYARD_ROOT:-}" ]; then
+if [ -z "${BOOM_CONFIG:-}" ] || [ -z "${CHIPYARD_ROOT:-}" ]; then
   # shellcheck disable=SC1091
   source "$SCRIPT_DIR/env.sh"
 fi
@@ -17,4 +17,4 @@ if [ ! -x "$HELLO_ELF" ]; then
   )
 fi
 
-exec "$SCRIPT_DIR/../../scripts/run_config.sh" "$BOOM_DUAL_CONFIG" "$HELLO_ELF"
+exec "$SCRIPT_DIR/run_cosim.sh" "$HELLO_ELF"

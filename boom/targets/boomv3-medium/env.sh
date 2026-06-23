@@ -27,6 +27,6 @@ set -u
 
 export BOOM_TARGET="boomv3-medium"
 export BOOM_CONFIG="MediumBoomV3CosimConfig"
-export BOOM_DUAL_CONFIG="DualMediumBoomV3CosimConfig"
+export BOOM_CORES="1"
 export BOOM_ROOT="$DUT_DIR/../.."
 export CHIPYARD_ROOT="$DUT_DIR/../../chipyard"

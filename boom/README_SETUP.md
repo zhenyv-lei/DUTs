@@ -4,12 +4,14 @@ For a clean-machine reproduction checklist, start with `README.md`. This file
 keeps the more detailed workflow and troubleshooting notes.
 
 This setup keeps one shared Chipyard checkout under `boom/chipyard` and exposes
-two BOOM DUT targets. The default acceptance path is single-core cospike; the
-dual-core configs are kept as explicit debug paths.
+four BOOM DUT targets. The default acceptance path is single-core cospike; the
+dual-core targets are kept as explicit debug paths.
 
 ```text
 targets/boomv3-medium/
 targets/boomv4-medium/
+targets/boomv3-medium-dual/
+targets/boomv4-medium-dual/
 ```
 
 After the environment and target simulator are built, each target directory can
@@ -33,7 +35,7 @@ boom/
     install_chipyard.sh      Clone/init Chipyard and install RISC-V tools.
     apply_chipyard_overlays.sh
                              Add local dual-core BOOM debug configs to Chipyard.
-    setup_target.sh          Setup and build boomv3-medium or boomv4-medium.
+    setup_target.sh          Setup and build one BOOM cosim target.
     run_config.sh            Run a Chipyard Verilator cosim config.
   builds/                    Local build output area; ignored by git.
   runs/                      Local run logs; ignored by git.
@@ -41,12 +43,18 @@ boom/
     boomv3-medium/
       env.sh
       run_helloworld.sh       Chipyard default hello workload.
-      run_dual_helloworld.sh  Dual-core debug run using Chipyard hello.
       run_cosim.sh
     boomv4-medium/
       env.sh
       run_helloworld.sh       Chipyard default hello workload.
-      run_dual_helloworld.sh  Dual-core debug run using Chipyard hello.
+      run_cosim.sh
+    boomv3-medium-dual/
+      env.sh
+      run_helloworld.sh       Chipyard default hello workload on dual core.
+      run_cosim.sh
+    boomv4-medium-dual/
+      env.sh
+      run_helloworld.sh       Chipyard default hello workload on dual core.
       run_cosim.sh
 ```
 
@@ -96,8 +104,8 @@ boomv4-medium -> MediumBoomV4CosimConfig
 The overlay additionally adds explicit dual-core debug configs:
 
 ```text
-boomv3-medium dual debug -> DualMediumBoomV3CosimConfig
-boomv4-medium dual debug -> DualMediumBoomV4CosimConfig
+boomv3-medium-dual -> DualMediumBoomV3CosimConfig
+boomv4-medium-dual -> DualMediumBoomV4CosimConfig
 ```
 
 Those configs keep `WithCospike` and `WithTraceIO` enabled and instantiate two
@@ -119,6 +127,8 @@ Build the target simulators:
 cd ~/opt/DUTs/boom
 JOBS=16 scripts/setup_target.sh boomv3-medium
 JOBS=16 scripts/setup_target.sh boomv4-medium
+JOBS=16 scripts/setup_target.sh boomv3-medium-dual
+JOBS=16 scripts/setup_target.sh boomv4-medium-dual
 ```
 
 This stage first ensures the local environment is installed, then creates the
@@ -128,6 +138,8 @@ Verilator cosim binaries:
 ```text
 boom/chipyard/sims/verilator/simulator-chipyard.harness-MediumBoomV3CosimConfig
 boom/chipyard/sims/verilator/simulator-chipyard.harness-MediumBoomV4CosimConfig
+boom/chipyard/sims/verilator/simulator-chipyard.harness-DualMediumBoomV3CosimConfig
+boom/chipyard/sims/verilator/simulator-chipyard.harness-DualMediumBoomV4CosimConfig
 ```
 
 If you have just run `scripts/install_chipyard.sh` and only want to rebuild a
@@ -140,6 +152,8 @@ On machines that require the BOSC IPv6 wrapper:
 cd ~/opt/DUTs/boom
 bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv3-medium'
 bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv4-medium'
+bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv3-medium-dual'
+bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv4-medium-dual'
 ```
 
 Useful knobs:
@@ -178,16 +192,16 @@ Cosim: harts: 1
 
 ### Dual-Core Debug Path
 
-For dual-core investigation, use the explicit debug wrapper:
+For dual-core investigation, use the explicit dual targets:
 
 ```bash
-cd ~/opt/DUTs/boom/targets/boomv3-medium
+cd ~/opt/DUTs/boom/targets/boomv3-medium-dual
 source ./env.sh
-./run_dual_helloworld.sh
+./run_helloworld.sh
 
-cd ~/opt/DUTs/boom/targets/boomv4-medium
+cd ~/opt/DUTs/boom/targets/boomv4-medium-dual
 source ./env.sh
-./run_dual_helloworld.sh
+./run_helloworld.sh
 ```
 
 This still uses Chipyard's stock `hello.riscv`, but runs it on
@@ -203,9 +217,9 @@ Cosim: harts: 2
 Cosim: ... wdata mismatch reg 5 ffffffffffffffff != 0
 ```
 
-The local overlay does not relax normal memory load-data checks. The helper
-`run_dual_helloworld.sh` records this useful failing configuration, but it is not
-the current acceptance path.
+The local overlay does not relax normal memory load-data checks. These explicit
+dual-core targets record this useful failing configuration, but they are not the
+current acceptance path.
 
 For a custom ELF:
 
@@ -244,7 +258,7 @@ boom/chipyard/sims/verilator/output/chipyard.harness.TestHarness.<CONFIG>/
 ```
 
 The old custom dual hello-world workload is not a strict-cospike acceptance
-test; the debug wrapper now uses Chipyard's stock `hello.riscv` directly.
+test; the debug targets use Chipyard's stock `hello.riscv` directly.
 
 ## Troubleshooting
 

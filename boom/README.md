@@ -23,13 +23,15 @@ Start from a checked-out `DUTs` repository:
 cd ~/opt/DUTs/boom
 ```
 
-Build the single-core BOOM v3 and BOOM v4 cospike targets. `setup_target.sh`
-deploys the local conda, Chipyard checkout, Chipyard conda environment, and
-RISC-V tools before building the selected simulator:
+Build the BOOM cospike targets. `setup_target.sh` deploys the local conda,
+Chipyard checkout, Chipyard conda environment, and RISC-V tools before building
+the selected simulator:
 
 ```bash
 JOBS=16 scripts/setup_target.sh boomv3-medium
 JOBS=16 scripts/setup_target.sh boomv4-medium
+JOBS=16 scripts/setup_target.sh boomv3-medium-dual
+JOBS=16 scripts/setup_target.sh boomv4-medium-dual
 ```
 
 On BOSC machines where outbound network access must go through the IPv6 proxy,
@@ -38,6 +40,8 @@ wrap network/install commands with `bosc-ipv6`:
 ```bash
 bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv3-medium'
 bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv4-medium'
+bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv3-medium-dual'
+bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv4-medium-dual'
 ```
 
 ## Smoke Tests
@@ -75,23 +79,24 @@ boomv3-medium -> MediumBoomV3CosimConfig
 boomv4-medium -> MediumBoomV4CosimConfig
 ```
 
-The setup also adds explicit dual-core debug configs to Chipyard:
+The setup also adds explicit dual-core debug targets to Chipyard:
 
 ```text
-boomv3-medium dual debug -> DualMediumBoomV3CosimConfig
-boomv4-medium dual debug -> DualMediumBoomV4CosimConfig
+boomv3-medium-dual -> DualMediumBoomV3CosimConfig
+boomv4-medium-dual -> DualMediumBoomV4CosimConfig
 ```
 
-Run the dual-core debug path with:
+Run a dual-core debug target with:
 
 ```bash
-cd ~/opt/DUTs/boom/targets/boomv3-medium
+cd ~/opt/DUTs/boom/targets/boomv3-medium-dual
 source ./env.sh
-./run_dual_helloworld.sh
+./run_helloworld.sh
 ```
 
 The dual-core path intentionally keeps the original strict cospike load-data
-checks. It is useful for debugging, but it is not the current acceptance path.
+checks. It is useful for debugging and should report `Cosim: harts: 2`, but it
+is not the current acceptance path.
 
 ## Notes
 
