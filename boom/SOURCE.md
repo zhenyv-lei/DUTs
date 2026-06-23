@@ -16,5 +16,7 @@ targets/boomv3-medium -> MediumBoomV3CosimConfig
 targets/boomv4-medium -> MediumBoomV4CosimConfig
 ```
 
-Chipyard Scala configs are the source of truth for BOOM configuration. This
-repository does not keep a separate YAML target description.
+Chipyard Scala configs are the source of truth for BOOM configuration. The
+single-core Medium BOOM cospike configs are Chipyard built-ins. The DUTs
+repository also applies a local Chipyard overlay with explicit dual-core debug
+configs via `boom/scripts/apply_chipyard_overlays.sh`.

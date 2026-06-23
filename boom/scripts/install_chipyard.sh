@@ -25,6 +25,7 @@ fi
 cd "$CHIPYARD_ROOT"
 git fetch --tags origin
 git checkout "$CHIPYARD_REF"
+"$BOOM_ROOT/scripts/apply_chipyard_overlays.sh"
 
 # Keep the setup focused on software RTL simulation. FireSim/Marshal can be
 # installed later if those workflows become necessary.
