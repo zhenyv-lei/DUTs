@@ -44,6 +44,19 @@ bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv3-medium-dual'
 bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv4-medium-dual'
 ```
 
+Check that the local conda and Chipyard tools are active from inside `boom/`:
+
+```bash
+tools/conda/bin/conda --version
+export PATH="$PWD/tools/conda/bin:$PATH"
+cd chipyard
+source env.sh
+which riscv64-unknown-elf-gcc
+which spike
+which verilator
+which firtool
+```
+
 ## Smoke Tests
 
 Run Chipyard's stock `hello.riscv` on the BOOM v3 single-core cosim target:
@@ -107,9 +120,8 @@ is not the current acceptance path.
 - `scripts/apply_chipyard_overlays.sh` adds local dual-core debug configs and
   cospike compatibility fixes to the local Chipyard checkout.
 - `scripts/setup_target.sh` creates the target wrappers and builds the selected
-  Verilator cosim simulator. By default it also runs `install_chipyard.sh`;
-  `BOOM_SKIP_CHIPYARD_INSTALL=1` is only an optional speed-up when the local
-  Chipyard environment has already been installed.
+  Verilator cosim simulator. The clean-deployment path always lets this script
+  install or refresh the local Chipyard environment first.
 
 See `README_SETUP.md` for the detailed workflow, logs, artifacts, and
 troubleshooting notes.

@@ -14,7 +14,6 @@ Targets:
 Environment:
   JOBS=48
   CHIPYARD_REF=<git-ref>
-  BOOM_SKIP_CHIPYARD_INSTALL=1
 EOF
 }
 

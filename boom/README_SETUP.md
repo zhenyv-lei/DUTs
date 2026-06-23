@@ -132,8 +132,8 @@ JOBS=16 scripts/setup_target.sh boomv4-medium-dual
 ```
 
 This stage first ensures the local environment is installed, then creates the
-target wrappers under `boom/targets/` and builds the corresponding single-core
-Verilator cosim binaries:
+target wrappers under `boom/targets/` and builds the corresponding Verilator
+cosim binaries:
 
 ```text
 boom/chipyard/sims/verilator/simulator-chipyard.harness-MediumBoomV3CosimConfig
@@ -141,10 +141,6 @@ boom/chipyard/sims/verilator/simulator-chipyard.harness-MediumBoomV4CosimConfig
 boom/chipyard/sims/verilator/simulator-chipyard.harness-DualMediumBoomV3CosimConfig
 boom/chipyard/sims/verilator/simulator-chipyard.harness-DualMediumBoomV4CosimConfig
 ```
-
-If you have just run `scripts/install_chipyard.sh` and only want to rebuild a
-target wrapper/simulator, `BOOM_SKIP_CHIPYARD_INSTALL=1` can be used as an
-optional speed-up. Do not use it for a clean deployment.
 
 On machines that require the BOSC IPv6 wrapper:
 
@@ -162,12 +158,31 @@ Useful knobs:
 JOBS=48                         Parallel build jobs; lower this on shared hosts.
 CHIPYARD_REF=<git-ref>          Chipyard ref to checkout.
 CHIPYARD_REPO=<url>             Chipyard repository URL.
-BOOM_SKIP_CHIPYARD_INSTALL=1    Reuse an existing boom/chipyard checkout.
 ```
 
 Expect a long environment install and large local output. A completed setup with
 both medium cosim targets can use tens of GB under `boom/chipyard` plus a few GB
 under `boom/tools`.
+
+### 3.1. Verify Local Tools
+
+The Chipyard environment expects `conda` to be visible before `env.sh` is
+sourced. For this self-contained setup, use the conda installed under `boom/`:
+
+```bash
+cd ~/opt/DUTs/boom
+tools/conda/bin/conda --version
+export PATH="$PWD/tools/conda/bin:$PATH"
+cd chipyard
+source env.sh
+which riscv64-unknown-elf-gcc
+which spike
+which verilator
+which firtool
+```
+
+The target wrappers do this automatically, so normal DUT runs can just source
+`targets/<target>/env.sh`.
 
 ### 4. Run Stock Hello Cosim
 

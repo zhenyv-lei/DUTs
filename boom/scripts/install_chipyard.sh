@@ -25,9 +25,13 @@ fi
 cd "$CHIPYARD_ROOT"
 git fetch --tags origin
 git checkout "$CHIPYARD_REF"
+
+# The DUTs overlay patches files in Chipyard submodules such as testchipip.
+# Initialize the non-toolchain submodules before applying local overlays.
+./scripts/init-submodules-no-riscv-tools.sh
 "$BOOM_ROOT/scripts/apply_chipyard_overlays.sh"
 
 # Keep the setup focused on software RTL simulation. FireSim/Marshal can be
 # installed later if those workflows become necessary.
 export MAKEFLAGS="${MAKEFLAGS:--j$JOBS}"
-./build-setup.sh riscv-tools --use-lean-conda --skip-firesim --skip-marshal
+./build-setup.sh riscv-tools --use-lean-conda --skip-submodules --skip-firesim --skip-marshal
