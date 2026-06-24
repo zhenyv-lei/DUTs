@@ -184,5 +184,29 @@ is not the current acceptance path.
   Verilator cosim simulator. The clean-deployment path always lets this script
   install or refresh the local Chipyard environment first.
 
-See `README_SETUP.md` for the detailed workflow, logs, artifacts, and
-troubleshooting notes.
+## Logs And Troubleshooting
+
+High-level logs are written under:
+
+```text
+boom/runs/<ChipyardConfig>/logs/build.log
+boom/runs/<ChipyardConfig>/logs/run.log
+```
+
+Chipyard's Verilator output also writes per-binary logs under:
+
+```text
+boom/chipyard/sims/verilator/output/chipyard.harness.TestHarness.<ChipyardConfig>/
+```
+
+If a conda download fails with `CondaHTTPError` or `HTTP 000 CONNECTION FAILED`,
+rerun the same command first. If the environment was left half-created, remove
+the incomplete Chipyard conda directories and retry:
+
+```bash
+rm -rf ~/opt/DUTs/boom/chipyard/.conda-lock-env ~/opt/DUTs/boom/chipyard/.conda-env
+bosc-ipv6 bash -lc 'cd ~/opt/DUTs/boom && JOBS=16 scripts/setup_target.sh boomv3-medium'
+```
+
+If `chipyard/env.sh` cannot be sourced after a failed setup, treat that as an
+incomplete environment and retry after removing the same directories.
