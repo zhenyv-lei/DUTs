@@ -64,7 +64,68 @@ The setup is intentionally split into environment installation and BOOM target
 builds. `chipyard/`, `tools/conda/`, and all generated simulator outputs stay
 under this `boom/` directory and are ignored by git.
 
-### 1. Install Environment
+### 1. Recommended One-Command Target Setup
+
+For normal use, run `scripts/setup_target.sh`. It installs or reuses the local
+environment, applies the local Chipyard overlay, creates the target wrapper, and
+builds the selected simulator.
+
+On BOSC machines that require the IPv6 wrapper:
+
+```bash
+cd ~/opt/DUTs/boom
+bosc-ipv6 bash -lc 'cd ~/opt/DUTs/boom && JOBS=16 scripts/setup_target.sh boomv3-medium'
+```
+
+Build the remaining targets from the same checkout:
+
+```bash
+cd ~/opt/DUTs/boom
+JOBS=16 scripts/setup_target.sh boomv4-medium
+JOBS=16 scripts/setup_target.sh boomv3-medium-dual
+JOBS=16 scripts/setup_target.sh boomv4-medium-dual
+```
+
+Use `bosc-ipv6 bash -lc 'cd ~/opt/DUTs/boom && ...'` for any later command that
+needs network access.
+
+`setup_target.sh` maps targets to Chipyard configs as follows:
+
+```text
+boomv3-medium      -> MediumBoomV3CosimConfig
+boomv4-medium      -> MediumBoomV4CosimConfig
+boomv3-medium-dual -> DualMediumBoomV3CosimConfig
+boomv4-medium-dual -> DualMediumBoomV4CosimConfig
+```
+
+### 2. What setup_target.sh Runs
+
+For one target, the script chain is:
+
+```text
+scripts/setup_target.sh <target>
+  -> scripts/install_chipyard.sh
+       -> scripts/install_conda.sh, if boom/tools/conda is missing
+       -> git clone/check out boom/chipyard at CHIPYARD_REF
+       -> ./scripts/init-submodules-no-riscv-tools.sh inside Chipyard
+       -> scripts/apply_chipyard_overlays.sh
+       -> ./build-setup.sh riscv-tools --use-lean-conda ..., if .conda-env is missing
+  -> scripts/apply_chipyard_overlays.sh
+  -> generate boom/targets/<target>/env.sh
+  -> generate boom/targets/<target>/run_cosim.sh
+  -> generate boom/targets/<target>/run_helloworld.sh
+  -> scripts/run_config.sh <ChipyardConfig>
+```
+
+The second overlay call is intentional. The overlay is idempotent, and this
+keeps existing checkouts refreshed before each target build.
+
+### 3. Manual Script-By-Script Setup
+
+The recommended path is still `setup_target.sh`. Use the following commands
+only when you want to inspect or rerun each stage separately.
+
+Install the local environment:
 
 ```bash
 cd ~/opt/DUTs/boom
@@ -88,10 +149,15 @@ On machines that require the BOSC IPv6 wrapper for network access:
 
 ```bash
 cd ~/opt/DUTs/boom
-bosc-ipv6 bash -lc 'JOBS=16 scripts/install_chipyard.sh'
+bosc-ipv6 bash -lc 'cd ~/opt/DUTs/boom && JOBS=16 scripts/install_chipyard.sh'
 ```
 
-### 2. Apply Local Chipyard Configs
+Apply or refresh the local Chipyard overlay:
+
+```bash
+cd ~/opt/DUTs/boom
+scripts/apply_chipyard_overlays.sh
+```
 
 Chipyard already provides the single-core cosim configs used by the default
 target wrappers:
@@ -111,31 +177,31 @@ boomv4-medium-dual -> DualMediumBoomV4CosimConfig
 Those configs keep `WithCospike` and `WithTraceIO` enabled and instantiate two
 medium BOOM cores with `WithNMediumBooms(2)`.
 
-`scripts/install_chipyard.sh` applies the overlay automatically. If an existing
-Chipyard checkout was created before this overlay existed, apply it explicitly:
+The overlay modifies the local Chipyard checkout under `boom/chipyard`. The main
+files it updates are:
+
+```text
+boom/chipyard/generators/chipyard/src/main/scala/config/BoomConfigs.scala
+boom/chipyard/generators/testchipip/src/main/resources/testchipip/csrc/cospike_impl.cc
+```
+
+It also patches cached/generated cospike copies when they already exist, such as
+the testchipip jar, `.classpath_cache/chipyard.jar`, and generated Verilator
+collateral. The normal strict cospike load-data check is preserved.
+
+Build a simulator directly from a Chipyard config:
 
 ```bash
 cd ~/opt/DUTs/boom
-scripts/apply_chipyard_overlays.sh
+JOBS=16 scripts/run_config.sh MediumBoomV3CosimConfig
+JOBS=16 scripts/run_config.sh MediumBoomV4CosimConfig
+JOBS=16 scripts/run_config.sh DualMediumBoomV3CosimConfig
+JOBS=16 scripts/run_config.sh DualMediumBoomV4CosimConfig
 ```
 
-### 3. Build BOOM Cosim Targets
-
-Build the target simulators:
-
-```bash
-cd ~/opt/DUTs/boom
-JOBS=16 scripts/setup_target.sh boomv3-medium
-JOBS=16 scripts/setup_target.sh boomv4-medium
-JOBS=16 scripts/setup_target.sh boomv3-medium-dual
-JOBS=16 scripts/setup_target.sh boomv4-medium-dual
-```
-
-This stage first ensures the local environment is installed, then creates the
-target wrappers under `boom/targets/` and builds the corresponding Verilator
-cosim binaries. The first target build installs `boom/tools/conda` and
-`boom/chipyard/.conda-env`; later target builds reuse those local resources and
-only refresh the Chipyard overlays before compiling the requested config:
+This direct path assumes `install_chipyard.sh` and
+`apply_chipyard_overlays.sh` have already completed. It builds the corresponding
+Verilator cosim binaries:
 
 ```text
 boom/chipyard/sims/verilator/simulator-chipyard.harness-MediumBoomV3CosimConfig
@@ -148,11 +214,15 @@ On machines that require the BOSC IPv6 wrapper:
 
 ```bash
 cd ~/opt/DUTs/boom
-bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv3-medium'
-bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv4-medium'
-bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv3-medium-dual'
-bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv4-medium-dual'
+bosc-ipv6 bash -lc 'cd ~/opt/DUTs/boom && JOBS=16 scripts/run_config.sh MediumBoomV3CosimConfig'
+bosc-ipv6 bash -lc 'cd ~/opt/DUTs/boom && JOBS=16 scripts/run_config.sh MediumBoomV4CosimConfig'
+bosc-ipv6 bash -lc 'cd ~/opt/DUTs/boom && JOBS=16 scripts/run_config.sh DualMediumBoomV3CosimConfig'
+bosc-ipv6 bash -lc 'cd ~/opt/DUTs/boom && JOBS=16 scripts/run_config.sh DualMediumBoomV4CosimConfig'
 ```
+
+If you want the target directories and convenience wrappers under
+`boom/targets/`, use `scripts/setup_target.sh <target>` instead of calling
+`run_config.sh` directly.
 
 Useful knobs:
 
@@ -166,7 +236,7 @@ Expect a long environment install and large local output. A completed setup with
 both medium cosim targets can use tens of GB under `boom/chipyard` plus a few GB
 under `boom/tools`.
 
-### 3.1. Verify Local Tools
+### 4. Verify Local Tools
 
 The Chipyard environment expects `conda` to be visible before `env.sh` is
 sourced. For this self-contained setup, use the conda installed under `boom/`:
@@ -186,7 +256,7 @@ which firtool
 The target wrappers do this automatically, so normal DUT runs can just source
 `targets/<target>/env.sh`.
 
-### 4. Run Stock Hello Cosim
+### 5. Run Stock Hello Cosim
 
 After target build:
 

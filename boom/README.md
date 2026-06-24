@@ -15,6 +15,29 @@ boom/chipyard/.conda-env/
 boom/runs/              Build and run logs.
 ```
 
+## Script Flow
+
+Use `scripts/setup_target.sh` as the normal entry point. For one target, it runs
+the following steps:
+
+```text
+scripts/setup_target.sh <target>
+  -> scripts/install_chipyard.sh
+       -> scripts/install_conda.sh, if boom/tools/conda is missing
+       -> clone/check out boom/chipyard at the pinned Chipyard ref
+       -> initialize Chipyard non-toolchain submodules
+       -> scripts/apply_chipyard_overlays.sh
+       -> Chipyard build-setup.sh riscv-tools, if .conda-env is missing
+  -> scripts/apply_chipyard_overlays.sh
+  -> create boom/targets/<target>/{env.sh,run_cosim.sh,run_helloworld.sh}
+  -> scripts/run_config.sh <ChipyardConfig>
+```
+
+`scripts/apply_chipyard_overlays.sh` modifies the local `boom/chipyard`
+checkout. It adds the dual-core BOOM debug configs and applies local cospike
+compatibility patches. The script is idempotent, so running it more than once is
+expected.
+
 ## Fresh Environment Setup
 
 Start from a checked-out `DUTs` repository:
@@ -23,26 +46,59 @@ Start from a checked-out `DUTs` repository:
 cd ~/opt/DUTs/boom
 ```
 
-Build the BOOM cospike targets. On the first run, `setup_target.sh` deploys the
-local conda, Chipyard checkout, Chipyard conda environment, and RISC-V tools
-before building the selected simulator. Later target builds reuse
-`boom/tools/conda` and `boom/chipyard/.conda-env` when they are already present:
+On BOSC machines, run networked install/build commands through `bosc-ipv6`.
+This command performs the full first-time setup and builds the BOOM v3
+single-core cosim:
 
 ```bash
-JOBS=16 scripts/setup_target.sh boomv3-medium
+bosc-ipv6 bash -lc 'cd ~/opt/DUTs/boom && JOBS=16 scripts/setup_target.sh boomv3-medium'
+```
+
+Then build the other targets from the same local Chipyard environment:
+
+```bash
+cd ~/opt/DUTs/boom
 JOBS=16 scripts/setup_target.sh boomv4-medium
 JOBS=16 scripts/setup_target.sh boomv3-medium-dual
 JOBS=16 scripts/setup_target.sh boomv4-medium-dual
 ```
 
-On BOSC machines where outbound network access must go through the IPv6 proxy,
-wrap network/install commands with `bosc-ipv6`:
+If the later commands need network access on your machine, wrap them in
+`bosc-ipv6` too:
 
 ```bash
-bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv3-medium'
-bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv4-medium'
-bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv3-medium-dual'
-bosc-ipv6 bash -lc 'JOBS=16 scripts/setup_target.sh boomv4-medium-dual'
+bosc-ipv6 bash -lc 'cd ~/opt/DUTs/boom && JOBS=16 scripts/setup_target.sh boomv4-medium'
+bosc-ipv6 bash -lc 'cd ~/opt/DUTs/boom && JOBS=16 scripts/setup_target.sh boomv3-medium-dual'
+bosc-ipv6 bash -lc 'cd ~/opt/DUTs/boom && JOBS=16 scripts/setup_target.sh boomv4-medium-dual'
+```
+
+The first target build installs:
+
+```text
+boom/tools/conda/
+boom/chipyard/
+boom/chipyard/.conda-env/
+```
+
+Later target builds reuse those directories when they already exist.
+
+## Manual Script-By-Script Setup
+
+The one-command `setup_target.sh` path above is recommended. To run the same
+pieces manually:
+
+```bash
+cd ~/opt/DUTs/boom
+
+# Install boom/tools/conda, clone/check out Chipyard, initialize submodules,
+# apply overlays, and install Chipyard's local RISC-V tool environment.
+bosc-ipv6 bash -lc 'cd ~/opt/DUTs/boom && JOBS=16 scripts/install_chipyard.sh'
+
+# Optional explicit overlay refresh. setup_target.sh also does this.
+scripts/apply_chipyard_overlays.sh
+
+# Create one target wrapper and build its Verilator cosim simulator.
+JOBS=16 scripts/setup_target.sh boomv3-medium
 ```
 
 Check that the local conda and Chipyard tools are active from inside `boom/`:
