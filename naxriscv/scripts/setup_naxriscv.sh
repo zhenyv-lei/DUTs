@@ -1,11 +1,21 @@
-#!/usr/bin/env bash
-set -Eeuo pipefail
+#!/usr/bin/env sh
+set -eu
+if (set -o pipefail) 2>/dev/null; then
+  set -o pipefail
+fi
 
 ###############################################################################
 # User configurable macros
 ###############################################################################
 
-DUTS_ROOT="${DUTS_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+_SCRIPT_PATH=$0
+case "$_SCRIPT_PATH" in
+  */*) ;;
+  *) _SCRIPT_PATH=$(command -v "$_SCRIPT_PATH" 2>/dev/null || printf '%s\n' "$_SCRIPT_PATH") ;;
+esac
+_SCRIPT_DIR=$(CDPATH= cd "$(dirname "$_SCRIPT_PATH")" && pwd -P)
+
+DUTS_ROOT="${DUTS_ROOT:-$(CDPATH= cd "$_SCRIPT_DIR/../.." && pwd -P)}"
 NAXRISCV_DIR="${NAXRISCV_DIR:-$DUTS_ROOT/NaxRiscv}"
 
 NAXRISCV_REPO_URL="${NAXRISCV_REPO_URL:-https://github.com/SpinalHDL/NaxRiscv.git}"
@@ -17,7 +27,7 @@ THREAD_COUNT="${THREAD_COUNT:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)
 # Network controls. Proxy endpoint stays outside Git; set BOSC_PROXY_URL or
 # BOSC_PROXY_HOST/BOSC_PROXY_PORT when USE_BOSC_PROXY=1.
 USE_BOSC_PROXY="${USE_BOSC_PROXY:-0}"
-BOSC_PROXY_SCRIPT="${BOSC_PROXY_SCRIPT:-$DUTS_ROOT/scripts/with_bosc_proxy.sh}"
+BOSC_PROXY_SCRIPT="${BOSC_PROXY_SCRIPT:-$DUTS_ROOT/naxriscv/scripts/with_bosc_proxy.sh}"
 BOSC_PROXY_CHECK_URL="${BOSC_PROXY_CHECK_URL:-https://github.com}"
 
 # Setup stages.
@@ -40,12 +50,12 @@ SMOKE_TIMEOUT="${SMOKE_TIMEOUT:-100000}"
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/setup_naxriscv.sh
+  naxriscv/scripts/setup_naxriscv.sh
 
 Common overrides:
-  NAXRISCV_DIR=/scratch/$USER/DUTs/NaxRiscv ./scripts/setup_naxriscv.sh
-  THREAD_COUNT=16 RUN_TEST_FAST=0 ./scripts/setup_naxriscv.sh
-  USE_BOSC_PROXY=1 BOSC_PROXY_URL=socks5h://HOST:PORT ./scripts/setup_naxriscv.sh
+  NAXRISCV_DIR=/scratch/$USER/DUTs/NaxRiscv naxriscv/scripts/setup_naxriscv.sh
+  THREAD_COUNT=16 RUN_TEST_FAST=0 naxriscv/scripts/setup_naxriscv.sh
+  USE_BOSC_PROXY=1 BOSC_PROXY_URL=socks5h://HOST:PORT naxriscv/scripts/setup_naxriscv.sh
 
 The script follows the upstream NaxRiscv README flow:
   1. clone and checkout rvls-update
@@ -54,13 +64,17 @@ The script follows the upstream NaxRiscv README flow:
   4. generate RTL
   5. build VNaxRiscv
   6. run a smoke test and optional regressions
+
+This script uses POSIX-style shell syntax and is checked with sh, bash, and zsh.
 EOF
 }
 
-if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-  usage
-  exit 0
-fi
+case "${1:-}" in
+  -h|--help)
+    usage
+    exit 0
+    ;;
+esac
 
 log() {
   printf '\n[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
@@ -72,17 +86,17 @@ die() {
 }
 
 run() {
-  {
-    printf '+'
-    printf ' %q' "$@"
-    printf '\n'
-  } >&2
+  printf '+' >&2
+  for _arg in "$@"; do
+    printf ' %s' "$_arg" >&2
+  done
+  printf '\n' >&2
   "$@"
 }
 
 net() {
-  if [[ "$USE_BOSC_PROXY" == "1" ]]; then
-    [[ -x "$BOSC_PROXY_SCRIPT" ]] || die "BOSC_PROXY_SCRIPT is not executable: $BOSC_PROXY_SCRIPT"
+  if [ "$USE_BOSC_PROXY" = "1" ]; then
+    [ -x "$BOSC_PROXY_SCRIPT" ] || die "BOSC_PROXY_SCRIPT is not executable: $BOSC_PROXY_SCRIPT"
     run "$BOSC_PROXY_SCRIPT" -- "$@"
   else
     run "$@"
@@ -90,26 +104,24 @@ net() {
 }
 
 check_proxy() {
-  [[ "$USE_BOSC_PROXY" == "1" ]] || return 0
+  [ "$USE_BOSC_PROXY" = "1" ] || return 0
   log "Checking BOSC proxy"
   run "$BOSC_PROXY_SCRIPT" --check "$BOSC_PROXY_CHECK_URL"
 }
 
 check_host_deps() {
-  [[ "$CHECK_HOST_DEPS" == "1" ]] || return 0
-  local missing=()
-  local cmd
+  [ "$CHECK_HOST_DEPS" = "1" ] || return 0
 
+  missing=""
   for cmd in git make gcc g++ autoconf flex bison curl tar sed grep; do
     if ! command -v "$cmd" >/dev/null 2>&1; then
-      missing+=("$cmd")
+      missing="$missing $cmd"
     fi
   done
 
-  if ((${#missing[@]})); then
-    printf 'Missing host commands:' >&2
-    printf ' %s' "${missing[@]}" >&2
-    printf '\nInstall them with your system package manager, then rerun this script.\n' >&2
+  if [ -n "$missing" ]; then
+    printf 'Missing host commands:%s\n' "$missing" >&2
+    printf 'Install them with your system package manager, then rerun this script.\n' >&2
     exit 1
   fi
 }
@@ -117,9 +129,9 @@ check_host_deps() {
 prepare_checkout() {
   log "Preparing NaxRiscv checkout: $NAXRISCV_DIR"
 
-  if [[ -d "$NAXRISCV_DIR/.git" ]]; then
+  if [ -d "$NAXRISCV_DIR/.git" ]; then
     log "Existing checkout found"
-    if [[ "$UPDATE_EXISTING_REPO" == "1" ]]; then
+    if [ "$UPDATE_EXISTING_REPO" = "1" ]; then
       net git -C "$NAXRISCV_DIR" fetch origin "$NAXRISCV_BRANCH"
       run git -C "$NAXRISCV_DIR" checkout -B "$NAXRISCV_BRANCH" "origin/$NAXRISCV_BRANCH"
     else
@@ -128,7 +140,7 @@ prepare_checkout() {
     return 0
   fi
 
-  if [[ -e "$NAXRISCV_DIR" ]]; then
+  if [ -e "$NAXRISCV_DIR" ]; then
     die "$NAXRISCV_DIR exists but is not a Git checkout"
   fi
 
@@ -160,24 +172,24 @@ setup_project_env() {
 }
 
 patch_upstream_installers() {
-  [[ "$APPLY_LOCAL_FIXES" == "1" ]] || return 0
+  [ "$APPLY_LOCAL_FIXES" = "1" ] || return 0
 
   log "Applying local installer compatibility fixes"
 
-  local sbt_installer="$NAXRISCV_DIR/ci/install-sbt.sh"
-  local jdk_installer="$NAXRISCV_DIR/ci/install-openjdk.sh"
-  local spike_installer="$NAXRISCV_DIR/ci/install-libsdl-elfio-spikespinalhdl.sh"
-  local verilator_installer="$NAXRISCV_DIR/ci/install-verilator.sh"
+  sbt_installer="$NAXRISCV_DIR/ci/install-sbt.sh"
+  jdk_installer="$NAXRISCV_DIR/ci/install-openjdk.sh"
+  spike_installer="$NAXRISCV_DIR/ci/install-libsdl-elfio-spikespinalhdl.sh"
+  verilator_installer="$NAXRISCV_DIR/ci/install-verilator.sh"
 
   # wget in this environment does not handle SOCKS proxies reliably; curl does.
   for file in "$sbt_installer" "$jdk_installer"; do
-    if [[ -f "$file" ]] && grep -qE '^[[:space:]]*wget[[:space:]]+https?://' "$file"; then
+    if [ -f "$file" ] && grep -qE '^[[:space:]]*wget[[:space:]]+https?://' "$file"; then
       run sed -i -E 's#^([[:space:]]*)wget[[:space:]]+(https?://[^[:space:]]+)[[:space:]]*$#\1curl -L --fail -O \2#' "$file"
     fi
   done
 
   # Verilator v4.216 can need <memory> with newer host compilers.
-  if [[ -f "$verilator_installer" ]] && ! grep -q 'DUTs local fix: add <memory>' "$verilator_installer"; then
+  if [ -f "$verilator_installer" ] && ! grep -q 'DUTs local fix: add <memory>' "$verilator_installer"; then
     run sed -i '/git checkout \$VERILATOR_VERSION/a\
 \
     # DUTs local fix: add <memory> for newer host compilers.\
@@ -187,27 +199,27 @@ patch_upstream_installers() {
   fi
 
   # Spike is configured without Boost, so package.so should not link Boost libs.
-  if [[ -f "$spike_installer" ]]; then
+  if [ -f "$spike_installer" ]; then
     run sed -i -E 's/[[:space:]]*-lboost_regex//g; s/[[:space:]]*-lboost_system//g' "$spike_installer"
   fi
 }
 
 patch_local_link_flags() {
-  [[ "$APPLY_LOCAL_FIXES" == "1" ]] || return 0
+  [ "$APPLY_LOCAL_FIXES" = "1" ] || return 0
 
-  local rvls_makefile="$NAXRISCV_DIR/ext/rvls/Makefile"
-  local sim_makefile="$NAXRISCV_DIR/src/test/cpp/naxriscv/makefile"
+  rvls_makefile="$NAXRISCV_DIR/ext/rvls/Makefile"
+  sim_makefile="$NAXRISCV_DIR/src/test/cpp/naxriscv/makefile"
 
-  if [[ -f "$rvls_makefile" ]]; then
+  if [ -f "$rvls_makefile" ]; then
     run sed -i -E 's#^LIBRARIES[[:space:]]*\+=.*#LIBRARIES += -lpthread -ldl#' "$rvls_makefile"
   fi
-  if [[ -f "$sim_makefile" ]]; then
+  if [ -f "$sim_makefile" ]; then
     run sed -i -E 's#^LIBS[[:space:]]*\+=.*#LIBS +="-lpthread -ldl"#' "$sim_makefile"
   fi
 }
 
 install_initial_toolchain() {
-  if [[ -x "$NAXRISCV_DIR/toolchain/sbt/bin/sbt" && -x "$NAXRISCV_DIR/toolchain/openjdk/bin/java" ]]; then
+  if [ -x "$NAXRISCV_DIR/toolchain/sbt/bin/sbt" ] && [ -x "$NAXRISCV_DIR/toolchain/openjdk/bin/java" ]; then
     log "Initial toolchain already installed"
     return 0
   fi
@@ -223,8 +235,8 @@ install_remaining_toolchain() {
   patch_upstream_installers
   patch_local_link_flags
 
-  local spike_dir="$NAXRISCV_DIR/ext/riscv-isa-sim"
-  local rvls_dir="$NAXRISCV_DIR/ext/rvls"
+  spike_dir="$NAXRISCV_DIR/ext/riscv-isa-sim"
+  rvls_dir="$NAXRISCV_DIR/ext/rvls"
 
   (cd "$NAXRISCV_DIR" && net ./ci/install-verilator.sh v4.216 "$NAXRISCV_DIR/toolchain")
   (cd "$NAXRISCV_DIR" && net ./ci/install-libsdl-elfio-spikespinalhdl.sh "$spike_dir" d251da09a07dff40af0b63b8f6c8ae71d2d1938d 60d1944e463da73f753661190d783961a9c5b764)
@@ -248,7 +260,7 @@ spike_ld_path() {
 }
 
 run_smoke() {
-  [[ "$RUN_SMOKE_TEST" == "1" ]] || return 0
+  [ "$RUN_SMOKE_TEST" = "1" ] || return 0
 
   log "Running smoke test: $SMOKE_TEST_NAME"
   run env LD_LIBRARY_PATH="$(spike_ld_path)" \
@@ -261,19 +273,19 @@ run_smoke() {
 }
 
 run_tests() {
-  local sim_dir="$NAXRISCV_DIR/src/test/cpp/naxriscv"
+  sim_dir="$NAXRISCV_DIR/src/test/cpp/naxriscv"
 
-  if [[ "$RUN_TEST_FAST" == "1" ]]; then
+  if [ "$RUN_TEST_FAST" = "1" ]; then
     log "Running test-fast"
     (cd "$sim_dir" && run env LD_LIBRARY_PATH="$(spike_ld_path)" make test-fast -j"$THREAD_COUNT")
   fi
 
-  if [[ "$RUN_TEST_ALL" == "1" ]]; then
+  if [ "$RUN_TEST_ALL" = "1" ]; then
     log "Running test-all"
     (cd "$sim_dir" && run env LD_LIBRARY_PATH="$(spike_ld_path)" make test-all -j"$THREAD_COUNT")
   fi
 
-  if [[ "$RUN_TEST_FAST" == "1" || "$RUN_TEST_ALL" == "1" ]]; then
+  if [ "$RUN_TEST_FAST" = "1" ] || [ "$RUN_TEST_ALL" = "1" ]; then
     log "Test summary"
     (cd "$sim_dir" && run find output -name PASS | wc -l)
     (cd "$sim_dir" && run find output -name FAIL | wc -l)

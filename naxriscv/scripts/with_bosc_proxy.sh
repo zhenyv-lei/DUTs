@@ -1,5 +1,8 @@
-#!/usr/bin/env bash
-set -Eeuo pipefail
+#!/usr/bin/env sh
+set -eu
+if (set -o pipefail) 2>/dev/null; then
+  set -o pipefail
+fi
 
 ###############################################################################
 # User configurable macros
@@ -21,18 +24,19 @@ CHECK_URL="${CHECK_URL:-https://github.com}"
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/with_bosc_proxy.sh --check [URL]
-  scripts/with_bosc_proxy.sh --print-env
-  scripts/with_bosc_proxy.sh -- COMMAND [ARG...]
+  naxriscv/scripts/with_bosc_proxy.sh --check [URL]
+  naxriscv/scripts/with_bosc_proxy.sh --print-env
+  naxriscv/scripts/with_bosc_proxy.sh -- COMMAND [ARG...]
 
 Configure the proxy through environment variables:
-  BOSC_PROXY_URL=socks5h://HOST:PORT scripts/with_bosc_proxy.sh -- git clone URL
+  BOSC_PROXY_URL=socks5h://HOST:PORT naxriscv/scripts/with_bosc_proxy.sh -- git clone URL
 
 Or:
   BOSC_PROXY_SCHEME=socks5h BOSC_PROXY_HOST=HOST BOSC_PROXY_PORT=PORT \
-    scripts/with_bosc_proxy.sh -- curl -I https://github.com
+    naxriscv/scripts/with_bosc_proxy.sh -- curl -I https://github.com
 
 This script intentionally does not hard-code site proxy endpoints.
+It uses POSIX-style shell syntax and is checked with sh, bash, and zsh.
 EOF
 }
 
@@ -42,21 +46,33 @@ die() {
 }
 
 resolve_proxy_url() {
-  if [[ -z "$BOSC_PROXY_URL" ]]; then
-    if [[ -n "$BOSC_PROXY_HOST" && -n "$BOSC_PROXY_PORT" ]]; then
+  if [ -z "$BOSC_PROXY_URL" ]; then
+    if [ -n "$BOSC_PROXY_HOST" ] && [ -n "$BOSC_PROXY_PORT" ]; then
       BOSC_PROXY_URL="$BOSC_PROXY_SCHEME://$BOSC_PROXY_HOST:$BOSC_PROXY_PORT"
     else
       die "set BOSC_PROXY_URL, or set BOSC_PROXY_HOST and BOSC_PROXY_PORT"
     fi
   fi
 
-  if [[ "$BOSC_PROXY_URL" =~ ^([a-zA-Z0-9+.-]+)://([^/:]+):([0-9]+)$ ]]; then
-    PROXY_SCHEME="${BASH_REMATCH[1]}"
-    PROXY_HOST="${BASH_REMATCH[2]}"
-    PROXY_PORT="${BASH_REMATCH[3]}"
-  else
+  case "$BOSC_PROXY_URL" in
+    *://*:*) ;;
+    *) die "unsupported BOSC_PROXY_URL format: $BOSC_PROXY_URL" ;;
+  esac
+
+  PROXY_SCHEME=${BOSC_PROXY_URL%%://*}
+  proxy_rest=${BOSC_PROXY_URL#*://}
+  PROXY_HOST=${proxy_rest%:*}
+  PROXY_PORT=${proxy_rest##*:}
+
+  if [ -z "$PROXY_SCHEME" ] || [ -z "$PROXY_HOST" ] || [ -z "$PROXY_PORT" ]; then
     die "unsupported BOSC_PROXY_URL format: $BOSC_PROXY_URL"
   fi
+
+  case "$PROXY_PORT" in
+    *[!0-9]*)
+      die "proxy port must be numeric: $PROXY_PORT"
+      ;;
+  esac
 }
 
 export_proxy_env() {
@@ -71,7 +87,7 @@ export_proxy_env() {
   export no_proxy="$BOSC_NO_PROXY"
   export NO_PROXY="$BOSC_NO_PROXY"
 
-  local java_proxy_opts=""
+  java_proxy_opts=""
   case "$PROXY_SCHEME" in
     socks5|socks5h)
       java_proxy_opts="-DsocksProxyHost=$PROXY_HOST -DsocksProxyPort=$PROXY_PORT -Djava.net.preferIPv4Stack=true"
@@ -81,7 +97,7 @@ export_proxy_env() {
       ;;
   esac
 
-  if [[ -n "$java_proxy_opts" ]]; then
+  if [ -n "$java_proxy_opts" ]; then
     export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} $java_proxy_opts"
     export SBT_OPTS="${SBT_OPTS:-} $java_proxy_opts"
   fi
@@ -102,7 +118,7 @@ EOF
 
 check_proxy() {
   export_proxy_env
-  local url="${1:-$CHECK_URL}"
+  url="${1:-$CHECK_URL}"
   curl -fsSIL --max-time 20 "$url" >/dev/null
   printf 'proxy check ok: %s\n' "$url"
 }
@@ -121,7 +137,7 @@ main() {
       ;;
     --)
       shift
-      (($# > 0)) || die "missing command after --"
+      [ "$#" -gt 0 ] || die "missing command after --"
       export_proxy_env
       exec "$@"
       ;;

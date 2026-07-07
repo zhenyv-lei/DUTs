@@ -9,18 +9,19 @@ its build products are not committed into this repository.
 ```bash
 git clone https://github.com/zhenyv-lei/DUTs.git
 cd DUTs
-./scripts/setup_naxriscv.sh
+./naxriscv/scripts/setup_naxriscv.sh
 ```
 
 All path and behavior switches are macros near the top of
-`scripts/setup_naxriscv.sh`. Override them with environment variables instead of
-editing the script:
+`naxriscv/scripts/setup_naxriscv.sh`. Override them with environment variables
+instead of editing the script. The scripts use POSIX-style shell syntax and are
+checked with `sh`, `bash`, and `zsh`.
 
 ```bash
 NAXRISCV_DIR=/scratch/$USER/DUTs/NaxRiscv \
 THREAD_COUNT=16 \
 RUN_TEST_FAST=0 \
-./scripts/setup_naxriscv.sh
+./naxriscv/scripts/setup_naxriscv.sh
 ```
 
 ## BOSC Proxy
@@ -29,7 +30,7 @@ External network access should go through the reusable proxy wrapper:
 
 ```bash
 BOSC_PROXY_URL=socks5h://HOST:PORT \
-./scripts/with_bosc_proxy.sh --check https://github.com
+./naxriscv/scripts/with_bosc_proxy.sh --check https://github.com
 ```
 
 Use the same wrapper through the NaxRiscv setup script:
@@ -37,7 +38,7 @@ Use the same wrapper through the NaxRiscv setup script:
 ```bash
 USE_BOSC_PROXY=1 \
 BOSC_PROXY_URL=socks5h://HOST:PORT \
-./scripts/setup_naxriscv.sh
+./naxriscv/scripts/setup_naxriscv.sh
 ```
 
 Equivalent host/port form:
@@ -46,14 +47,14 @@ Equivalent host/port form:
 USE_BOSC_PROXY=1 \
 BOSC_PROXY_HOST=HOST \
 BOSC_PROXY_PORT=PORT \
-./scripts/setup_naxriscv.sh
+./naxriscv/scripts/setup_naxriscv.sh
 ```
 
 For other one-off network commands:
 
 ```bash
 BOSC_PROXY_URL=socks5h://HOST:PORT \
-./scripts/with_bosc_proxy.sh -- git clone https://github.com/SpinalHDL/NaxRiscv.git
+./naxriscv/scripts/with_bosc_proxy.sh -- git clone https://github.com/SpinalHDL/NaxRiscv.git
 ```
 
 Keep site-specific proxy endpoints and credentials out of Git.
@@ -88,7 +89,7 @@ The local fixes are intentionally narrow:
 Disable these fixes only when debugging upstream behavior:
 
 ```bash
-APPLY_LOCAL_FIXES=0 ./scripts/setup_naxriscv.sh
+APPLY_LOCAL_FIXES=0 ./naxriscv/scripts/setup_naxriscv.sh
 ```
 
 ## Manual Upstream Flow
