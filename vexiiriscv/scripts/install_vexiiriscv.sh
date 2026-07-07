@@ -9,11 +9,16 @@ SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 VEXII_WRAPPER_ROOT=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd)
 DEFAULT_REPO_DIR="$VEXII_WRAPPER_ROOT/VexiiRiscv"
 DEFAULT_INSTALL_ROOT="$VEXII_WRAPPER_ROOT"
+TOOLS_DIR="${TOOLS_DIR:-$VEXII_WRAPPER_ROOT/tools}"
+LOCAL_BIN="$TOOLS_DIR/bin"
 
 REPO_URL="${REPO_URL:-https://github.com/SpinalHDL/VexiiRiscv.git}"
 REPO_DIR="${REPO_DIR:-$DEFAULT_REPO_DIR}"
 INSTALL_ROOT="${INSTALL_ROOT:-$DEFAULT_INSTALL_ROOT}"
 JOBS="${JOBS:-}"
+INSTALL_DEPS="${INSTALL_DEPS:-0}"
+CHECK_ONLY="${CHECK_ONLY:-0}"
+MILL_LAUNCHER_URL="${MILL_LAUNCHER_URL:-https://raw.githubusercontent.com/com-lihaoyi/mill/main/mill}"
 SPIKE_PREFIX="${SPIKE_PREFIX:-/tmp/vexiiriscv-riscv}"
 USE_BOSC_PROXY="${USE_BOSC_PROXY:-auto}"
 MILL_USE_PROXY="${MILL_USE_PROXY:-0}"
@@ -37,7 +42,10 @@ Useful environment variables:
   REPO_DIR=/path/to/VexiiRiscv       Existing or target checkout
   INSTALL_ROOT=/path/to/wrapper      Parent directory for a fresh clone
   RUNS_DIR=/path/to/logs             Log directory
+  TOOLS_DIR=/path/to/tools           Local user-space tools directory
   JOBS=8                             Parallel make jobs
+  CHECK_ONLY=1                       Only check dependencies and exit
+  INSTALL_DEPS=1                     Install missing user-space dependencies
   USE_BOSC_PROXY=auto|1|0            Use BOSC proxy wrapper for git/network fetches
   MILL_USE_PROXY=0|1                 Use proxy wrapper for Mill too; default 0
   SKIP_RVLS=1                        Skip Spike/RVLS build and run non-cosim smoke
@@ -47,6 +55,8 @@ Useful environment variables:
 
 Examples:
   scripts/install_vexiiriscv.sh
+  CHECK_ONLY=1 scripts/install_vexiiriscv.sh
+  INSTALL_DEPS=1 scripts/install_vexiiriscv.sh
   JOBS=16 SKIP_SMOKE=1 scripts/install_vexiiriscv.sh
   USE_BOSC_PROXY=0 MILL_USE_PROXY=0 scripts/install_vexiiriscv.sh
 EOF
@@ -67,8 +77,10 @@ if [ -z "$JOBS" ]; then
   fi
 fi
 
-mkdir -p "$INSTALL_ROOT" "$RUNS_DIR"
+mkdir -p "$INSTALL_ROOT" "$RUNS_DIR" "$LOCAL_BIN"
 LOG_FILE="${LOG_FILE:-$RUNS_DIR/vexiiriscv_install_$(date +%Y%m%d_%H%M%S).log}"
+PATH="$LOCAL_BIN:$PATH"
+export PATH
 
 log() {
   printf '\n[%s] %s\n' "$(date '+%F %T')" "$*" | tee -a "$LOG_FILE"
@@ -134,6 +146,16 @@ run_net() {
   fi
 }
 
+download_file() {
+  url="$1"
+  out="$2"
+  if proxy_enabled; then
+    run "$PROXY_WRAPPER" -- curl -fL "$url" -o "$out"
+  else
+    run curl -fL "$url" -o "$out"
+  fi
+}
+
 run_mill() {
   if is_true "$MILL_USE_PROXY"; then
     run_net mill "$@"
@@ -144,6 +166,61 @@ run_mill() {
 
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "Missing command: $1"
+}
+
+check_cmd() {
+  name="$1"
+  if command -v "$name" >/dev/null 2>&1; then
+    log "Dependency ok: $name -> $(command -v "$name")"
+    return 0
+  fi
+  log "Dependency missing: $name"
+  return 1
+}
+
+install_mill_launcher() {
+  if command -v mill >/dev/null 2>&1; then
+    return 0
+  fi
+
+  log "Installing Mill launcher into $LOCAL_BIN/mill"
+  mkdir -p "$LOCAL_BIN"
+  tmp_mill="${TMPDIR:-/tmp}/mill_launcher_$$"
+  download_file "$MILL_LAUNCHER_URL" "$tmp_mill"
+  chmod +x "$tmp_mill"
+  mv "$tmp_mill" "$LOCAL_BIN/mill"
+
+  command -v mill >/dev/null 2>&1 || die "Mill launcher install failed"
+}
+
+check_or_install_dependencies() {
+  log "Checking required host commands"
+
+  missing_system=""
+  for cmd in git make c++ curl verilator; do
+    if ! check_cmd "$cmd"; then
+      missing_system="$missing_system $cmd"
+    fi
+  done
+
+  if ! check_cmd mill; then
+    if is_true "$INSTALL_DEPS"; then
+      install_mill_launcher
+      check_cmd mill || die "Mill launcher was installed but is still not found in PATH"
+    else
+      missing_system="$missing_system mill"
+    fi
+  fi
+
+  if command -v javac >/dev/null 2>&1; then
+    log "Dependency ok: javac -> $(command -v javac)"
+  else
+    log "Dependency note: javac not found in PATH; RVLS build can still use a JDK downloaded by Mill/Coursier if present"
+  fi
+
+  if [ -n "$missing_system" ]; then
+    die "Missing required commands:$missing_system. Install system packages or rerun with INSTALL_DEPS=1 to auto-install the Mill launcher when only mill is missing."
+  fi
 }
 
 find_javac_dir() {
@@ -194,13 +271,12 @@ find_elfio_include() {
 
 log "Writing install log to $LOG_FILE"
 
-log "Checking required host commands"
-require_cmd git
-require_cmd make
-require_cmd mill
-require_cmd c++
-require_cmd curl
-require_cmd verilator
+check_or_install_dependencies
+
+if is_true "$CHECK_ONLY"; then
+  log "CHECK_ONLY=1; dependency check completed"
+  exit 0
+fi
 
 if proxy_enabled && [ "$CHECK_PROXY" = "1" ]; then
   log "Checking BOSC proxy connectivity"

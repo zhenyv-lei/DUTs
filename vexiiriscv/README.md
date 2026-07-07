@@ -55,6 +55,37 @@ scripts/install_vexiiriscv.sh
 The script is written as a POSIX-style shell script, so it can be run from
 bash, zsh, or `sh`.
 
+## Dependency Check
+
+Before a full build on a new server, run:
+
+```bash
+CHECK_ONLY=1 scripts/install_vexiiriscv.sh
+```
+
+The script checks for:
+
+```text
+git
+make
+mill
+c++
+curl
+verilator
+```
+
+If only `mill` is missing, the script can install a user-space Mill launcher
+under `vexiiriscv/tools/bin/`:
+
+```bash
+INSTALL_DEPS=1 CHECK_ONLY=1 scripts/install_vexiiriscv.sh
+```
+
+System tools such as `git`, `make`, `c++`, and `verilator` are not installed by
+this script because they normally require root privileges or site-specific
+module/conda setup. Install those through the server's normal environment
+mechanism, then rerun the check.
+
 ## Useful Options
 
 Use more or fewer make jobs:
