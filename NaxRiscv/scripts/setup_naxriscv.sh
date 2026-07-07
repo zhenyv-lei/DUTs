@@ -16,7 +16,14 @@ esac
 _SCRIPT_DIR=$(CDPATH= cd "$(dirname "$_SCRIPT_PATH")" && pwd -P)
 
 DUTS_ROOT="${DUTS_ROOT:-$(CDPATH= cd "$_SCRIPT_DIR/../.." && pwd -P)}"
-NAXRISCV_DIR="${NAXRISCV_DIR:-$DUTS_ROOT/NaxRiscv}"
+NAXRISCV_WORKSPACE="${NAXRISCV_WORKSPACE:-$(CDPATH= cd "$_SCRIPT_DIR/.." && pwd -P)}"
+
+if [ -f "$NAXRISCV_WORKSPACE/Makefile" ] && [ -d "$NAXRISCV_WORKSPACE/ci" ]; then
+  DEFAULT_NAXRISCV_DIR="$NAXRISCV_WORKSPACE"
+else
+  DEFAULT_NAXRISCV_DIR="$NAXRISCV_WORKSPACE/upstream"
+fi
+NAXRISCV_DIR="${NAXRISCV_DIR:-$DEFAULT_NAXRISCV_DIR}"
 
 NAXRISCV_REPO_URL="${NAXRISCV_REPO_URL:-https://github.com/SpinalHDL/NaxRiscv.git}"
 NAXRISCV_BRANCH="${NAXRISCV_BRANCH:-rvls-update}"
@@ -27,7 +34,7 @@ THREAD_COUNT="${THREAD_COUNT:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)
 # Network controls. Proxy endpoint stays outside Git; set BOSC_PROXY_URL or
 # BOSC_PROXY_HOST/BOSC_PROXY_PORT when USE_BOSC_PROXY=1.
 USE_BOSC_PROXY="${USE_BOSC_PROXY:-0}"
-BOSC_PROXY_SCRIPT="${BOSC_PROXY_SCRIPT:-$DUTS_ROOT/naxriscv/scripts/with_bosc_proxy.sh}"
+BOSC_PROXY_SCRIPT="${BOSC_PROXY_SCRIPT:-$NAXRISCV_WORKSPACE/scripts/with_bosc_proxy.sh}"
 BOSC_PROXY_CHECK_URL="${BOSC_PROXY_CHECK_URL:-https://github.com}"
 
 # Setup stages.
@@ -50,12 +57,17 @@ SMOKE_TIMEOUT="${SMOKE_TIMEOUT:-100000}"
 usage() {
   cat <<'EOF'
 Usage:
-  naxriscv/scripts/setup_naxriscv.sh
+  cd NaxRiscv
+  ./scripts/setup_naxriscv.sh
 
 Common overrides:
-  NAXRISCV_DIR=/scratch/$USER/DUTs/NaxRiscv naxriscv/scripts/setup_naxriscv.sh
-  THREAD_COUNT=16 RUN_TEST_FAST=0 naxriscv/scripts/setup_naxriscv.sh
-  USE_BOSC_PROXY=1 BOSC_PROXY_URL=socks5h://HOST:PORT naxriscv/scripts/setup_naxriscv.sh
+  NAXRISCV_DIR=/scratch/$USER/DUTs/NaxRiscv ./scripts/setup_naxriscv.sh
+  THREAD_COUNT=16 RUN_TEST_FAST=0 ./scripts/setup_naxriscv.sh
+  USE_BOSC_PROXY=1 BOSC_PROXY_URL=socks5h://HOST:PORT ./scripts/setup_naxriscv.sh
+
+Default checkout location:
+  - If NaxRiscv/ is already an upstream checkout, reuse NaxRiscv/.
+  - Otherwise clone upstream into NaxRiscv/upstream/.
 
 The script follows the upstream NaxRiscv README flow:
   1. clone and checkout rvls-update
@@ -296,6 +308,7 @@ run_tests() {
 main() {
   log "NaxRiscv setup started"
   log "DUTS_ROOT=$DUTS_ROOT"
+  log "NAXRISCV_WORKSPACE=$NAXRISCV_WORKSPACE"
   log "NAXRISCV_DIR=$NAXRISCV_DIR"
   log "NAXRISCV_BRANCH=$NAXRISCV_BRANCH"
   log "THREAD_COUNT=$THREAD_COUNT"

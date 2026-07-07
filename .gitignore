@@ -1,3 +1,5 @@
-/NaxRiscv/
 /scripts/bosc_proxy.env
-/naxriscv/scripts/bosc_proxy.env
+/NaxRiscv/*
+!/NaxRiscv/scripts/
+!/NaxRiscv/scripts/*.sh
+/NaxRiscv/scripts/bosc_proxy.env

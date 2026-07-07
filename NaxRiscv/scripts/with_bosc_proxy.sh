@@ -24,16 +24,17 @@ CHECK_URL="${CHECK_URL:-https://github.com}"
 usage() {
   cat <<'EOF'
 Usage:
-  naxriscv/scripts/with_bosc_proxy.sh --check [URL]
-  naxriscv/scripts/with_bosc_proxy.sh --print-env
-  naxriscv/scripts/with_bosc_proxy.sh -- COMMAND [ARG...]
+  cd NaxRiscv
+  ./scripts/with_bosc_proxy.sh --check [URL]
+  ./scripts/with_bosc_proxy.sh --print-env
+  ./scripts/with_bosc_proxy.sh -- COMMAND [ARG...]
 
 Configure the proxy through environment variables:
-  BOSC_PROXY_URL=socks5h://HOST:PORT naxriscv/scripts/with_bosc_proxy.sh -- git clone URL
+  BOSC_PROXY_URL=socks5h://HOST:PORT ./scripts/with_bosc_proxy.sh -- git clone URL
 
 Or:
   BOSC_PROXY_SCHEME=socks5h BOSC_PROXY_HOST=HOST BOSC_PROXY_PORT=PORT \
-    naxriscv/scripts/with_bosc_proxy.sh -- curl -I https://github.com
+    ./scripts/with_bosc_proxy.sh -- curl -I https://github.com
 
 This script intentionally does not hard-code site proxy endpoints.
 It uses POSIX-style shell syntax and is checked with sh, bash, and zsh.
