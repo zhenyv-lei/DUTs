@@ -1,0 +1,8 @@
+NaxRiscv
+NaxRiscv/
+tools
+tools/
+builds/*
+!builds/.gitkeep
+runs/*
+!runs/.gitkeep
