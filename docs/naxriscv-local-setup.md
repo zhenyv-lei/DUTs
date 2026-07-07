@@ -4,6 +4,34 @@ This guide records the local setup flow used to deploy and test NaxRiscv with
 the bundled Spike lockstep simulator. It is intended to live in the DUTs
 workspace repository, not inside the upstream NaxRiscv repository.
 
+For a fresh machine, prefer the one-shot setup script:
+
+```bash
+git clone https://github.com/zhenyv-lei/DUTs.git
+cd DUTs
+./scripts/setup_naxriscv.sh
+```
+
+All portable paths and behavior switches are macros at the top of
+`scripts/setup_naxriscv.sh`. Override them through environment variables when
+running on a different server:
+
+```bash
+NAXRISCV_DIR=/scratch/$USER/DUTs/NaxRiscv \
+THREAD_COUNT=16 \
+RUN_TEST_FAST=0 \
+./scripts/setup_naxriscv.sh
+```
+
+If the server requires a site proxy for GitHub and package downloads, point the
+script at the local proxy wrapper instead of editing the script:
+
+```bash
+USE_BOSC_PROXY=1 \
+BOSC_PROXY_WRAPPER=/path/to/with_bosc_proxy.sh \
+./scripts/setup_naxriscv.sh
+```
+
 Validated on 2026-07-06 with:
 
 - Upstream repository: `https://github.com/SpinalHDL/NaxRiscv.git`
