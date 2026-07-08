@@ -1,0 +1,8 @@
+VexiiRiscv
+VexiiRiscv/
+tools
+tools/
+builds/*
+!builds/.gitkeep
+runs/*
+!runs/.gitkeep
